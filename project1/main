@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# "$EUID" is a variable that contains the effective user ID of the user running the script.
+# -ne stands for "not equal"
+# This condition checks if the script is being run as the root user.
+# https://www.baeldung.com/linux/check-script-run-root#:~:text=Similarly%2C%20we%20can%20use%20the,executing%20user%20in%20the%20terminal.
+if [[ "$EUID" -ne 0 ]]; then
+    echo "Please run this script as root"
+exit 1
+fi
+
+echo "Running this script as root. Continue..."
+
+
+# Path to the file containing what you want to download
+file="packages"

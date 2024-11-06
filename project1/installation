@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# Specify your package manager, in this case we are using Arch and bypassing the Y/n 
+# https://bbs.archlinux.org/viewtopic.php?id=151484
+package_manager="pacman -S --noconfirm"
+
+
+# Reads each line of the input and stores it in a variable "package"
+# https://www.javatpoint.com/bash-read-file
+while read package; do
+
+	# Skip empty lines or lines starting with # only IF the condition is true
+	# https://ioflood.com/blog/bash-and-operator/#:~:text=The%20'%26%26'%20operator%20in%20Bash%20allows%20for%20the%20execution%20of,moving%20on%20to%20the%20next.
+	# https://tldp.org/LDP/Bash-Beginners-Guide/html/sect_09_05.html
+	[[ -z "$package" || "$package" == \#* ]] && continue
+	
+	# Checks if the package is already installed and redirects the output to dev/null
+	# https://devhints.io/pacman
+	# https://learning.oreilly.com/videos/bash-shell-scripting/9780137689064/9780137689064-BSS2_03_08_02/
+	if pacman -Q "$package"&>/dev/null; then
+		echo "$(pacman -Q "$package") is already installed."
+	# If the first condition isn't fulfilled, it will then echo a new input saying that the package in the file is installed
+	else
+		echo "Installing $package"
+	$package_manager "$package"&>/dev/null
+	fi
+
+# This reads the first line of the file variable that 
+# https://stackoverflow.com/questions/35766024/done-filename-in-the-while-loop
+done < "$file"
+
