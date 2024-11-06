@@ -12,5 +12,4 @@ fi
 echo "Running this script as root. Continue..."
 
 
-# Path to the file containing what you want to download
-file="packages"
+
