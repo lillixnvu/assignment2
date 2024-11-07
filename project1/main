@@ -4,12 +4,31 @@
 # -ne stands for "not equal"
 # This condition checks if the script is being run as the root user.
 # https://www.baeldung.com/linux/check-script-run-root#:~:text=Similarly%2C%20we%20can%20use%20the,executing%20user%20in%20the%20terminal.
+#!/bin/bash
+
 if [[ "$EUID" -ne 0 ]]; then
     echo "Please run this script as root"
-exit 1
+    exit 1
 fi
 
 echo "Running this script as root. Continue..."
 
 
-
+while getopts ":p:c:" opt; do
+  case "${opt}" in
+    p)
+      packages="${OPTARG}"
+      bash installation "${packages}" 
+      exit 0
+      ;;
+      
+    c)
+      exit 1
+      ;;
+      
+    *)
+      echo "Error: Invalid option, please choose [-p packages] or [-c]"
+      exit 2
+      ;;
+  esac
+done
