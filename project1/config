@@ -1,31 +1,43 @@
 #!/usr/bin/env bash
 
-# Define a variable that takes the user's directory as an argument
+# Define a variable that takes the username's directory as an argument
 # https://expressionengine.com/forums/topic/100411/simple-bash-script-to-create-new-symlinks
-user=$1
+username=$1
 
-# This checks if the .bashrc file exists for the user
-if [[ -f "$user/.bashrc" ]]; then
-	# If the file exists, remove the .bashrc to create a new symlink
-	echo "Removing existing .bashrc for user $user..."
-	rm $user/.bashrc
+# Checks if the username exists in the system
+if id -u "$username"; then
+	echo "Username $username exists, proceed..."
+	
+	# This checks if the .bashrc file exists for the username
+	if [[ -f "/home/$username/.bashrc" ]]; then
+
+		# If the file exists, remove the .bashrc to create a new symlink
+		rm /home/$username/.bashrc
+		echo "Removing existing .bashrc for username $username..."
+	fi
+
+	# Creates a symbolic link for the bin directory
+	# Links /home/$username/2420-as2-starting-files/bin to /home/$username/bin
+	# Allows username to use the bin directory from 2420-as2-starting-files folder
+	ln -s /home/$username/2420-as2-starting-files/bin /home/$username/bin
+	echo "/home/$username/2420-as2-starting-files/bin has been linked to /home/$username/bin"
+
+	# Creates a symbolic link for the config directory
+	# Links /home/$username/2420-as2-starting-files/config to /home/$username/.config
+	# Allows username to use the config directory from 2420-as2-starting-files folder
+	ln -s /home/$username/2420-as2-starting-files/config /home/$username/.config
+	echo "/home/$username/2420-as2-starting-files/config has been linked to /home/$username/.config"
+
+	# Creates a symbolic link for the .bashrc file
+	# Links /home/$username/2420-as2-starting-files/bashrc to /home/$username/.bashrc
+	# Allows username to use custom .bashrc file from 2420-as2-starting-files folder
+	ln -s /home/$username/2420-as2-starting-files/home/bashrc /home/$username/.bashrc
+	echo "/home/$username/2420-as2-starting-files/home/bashrc has been linked to /home/$username/.bashrc"
 else
-	echo
-	".bashrc does not exist for user $user"
+	echo "Username $username does not exist! Please create before proceeding!"
 fi
 
-# Creates a symbolic link for the bin directory
-# Links /home/$user/copy_config/bin to /home/$user/bin
-# Allows user to use the bin directory from copy_config folder
-ln -s /home/$user/copy_config/bin /home/$user/bin
 
-# Creates a symbolic link for the config directory
-# Links /home/$user/copy_config/config to /home/$user/.config
-# Allows user to use the config directory from copy_config folder
-ln -s /home/$user/copy_config/config /home/$user/.config
 
-# Creates a symbolic link for the .bashrc file
-# Links /home/$user/copy_config/bashrc to /home/$user/.bashrc
-# Allows user to use custom .bashrc file from copy_config folder
-ln -s /home/$user/copy_config/home/bashrc /home/$user/.bashrc
+
 

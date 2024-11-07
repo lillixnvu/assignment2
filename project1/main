@@ -5,30 +5,52 @@
 # This condition checks if the script is being run as the root user.
 # https://www.baeldung.com/linux/check-script-run-root#:~:text=Similarly%2C%20we%20can%20use%20the,executing%20user%20in%20the%20terminal.
 #!/bin/bash
-
 if [[ "$EUID" -ne 0 ]]; then
     echo "Please run this script as root"
+    
+    # Exit with a one status to indicate an error
+    # https://www.cyberciti.biz/faq/linux-bash-exit-status-set-exit-statusin-bash/
     exit 1
 fi
 
-echo "Running this script as root. Continue..."
 
-
+# Using getopts 
 while getopts ":p:c:" opt; do
   case "${opt}" in
     p)
-      packages="${OPTARG}"
-      bash installation "${packages}" 
-      exit 0
-      ;;
+
+    # Stores the value passed to the -p option into the "packages" variable
+    packages="${OPTARG}"
+
+    # Runs the "installation" script with the users provided argument
+    bash installation "${packages}" 
+
+    # Exit with a zero status to indicates success
+    exit 0
+    ;;
       
     c)
-      exit 1
-      ;;
+
+    # Stores the value passed to the -c option into the "configuration" variable
+    configuration="${OPTARG}"
+
+    # Runs the "config" script with the users provided argument
+    bash config "${configuration}"
+
+    # Exit with a zero status to indicates success
+    exit 0
+    ;;
       
     *)
-      echo "Error: Invalid option, please choose [-p packages] or [-c]"
-      exit 2
-      ;;
+
+    # Print an error message if an invalid option is provided
+
+    echo "Error: Invalid option, please enter [sudo ./main -p packages] or [sudo ./main -c config]"
+
+    # Exit with a one status to indicate an error
+    exit 1
+    ;;
   esac
 done
+
+
