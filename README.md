@@ -17,7 +17,7 @@ This project is created to automate the setup of a new system by installing spec
 
 
 **Available Options**:
-1. **Install Packages**: To install packages listed in the `packages`, please run the following command:
+1. **Install Packages**: To install packages listed in the `packages` file, please run the following command:
 ```bash
 sudo ./main -p packages
 ```
@@ -32,3 +32,13 @@ sudo ./main -c config
 
 ### Project 2: New User Script
 This project is created to help the user to set up new accounts without relying on existing user-creation tools, giving you full control over each step of the setup and allowing for customization.
+
+**Important**: In order to run this script, you MUST run it as the root user or with `sudo` privileges.
+
+To create a new user, please run the following command:
+```bash
+sudo ./new_user -u username -s /bin/bash -g group1,group2
+```
+- **Username:** Specify the desired username.
+- **Shell:** Choose the preferred shell for the user.
+- **Groups:** Add the user to one or more groups as needed.
