@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+
+# "$EUID" is a variable that contains the effective user ID of the user running the script.
+# -ne stands for "not equal"
+# This condition checks if the script is being run as the root user.
+# https://www.baeldung.com/linux/check-script-run-root#:~:text=Similarly%2C%20we%20can%20use%20the,executing%20user%20in%20the%20terminal.
+#!/bin/bash
+if [[ "$EUID" -ne 0 ]]; then
+	echo "Please run as root"
+
+	# Exit with a one status to indicate an error
+    # https://www.cyberciti.biz/faq/linux-bash-exit-status-set-exit-statusin-bash/
+	exit 1
+fi
+
+# Declaring variables for the username, shell, and group to be added
+username=""
+shell="/bin/bash"
+group_add=()
+
+# Function to determine the next available UID for the new user
+check_uid() {
+	# https://www.geeksforgeeks.org/awk-command-unixlinux-examples/
+	# https://man7.org/linux/man-pages/man1/awk.1p.html
+	# Using 'awk' to find the highest UID greater than or equal to 1001 and add 1 to get the next available
+	# Checks /etc/passwd to find the avaialble UID
+	new_UID=$(awk -F: '$3 >= 1001 {uid=$3} END {print uid+1}' /etc/passwd)
+
+	# The next available UID is assigned to the variable GID
+	GID=$new_UID
+}
+
+# Function to add a new user
+# https://www.baeldung.com/linux/manually-add-user
+add_user() {
+
+	# Checks if the username provded exists in /etc/passwd
+	if grep -q "$username:" /etc/passwd; then
+
+		# If the user exists, output a message
+		echo "User $username already exists."
+
+		# Exit with a one status to indicate an error.
+		exit 1
+	else
+		# Sets a home directory for the user
+		home_dir="/home/$username"
+
+		# Adds the new user to the /etc/passwd file with the generated UID, GID, and shell
+		# https://stackoverflow.com/questions/17701989/how-do-i-append-text-to-a-file
+		echo "$username:x:$new_UID:$GID:User Account:$home_dir:$shell" >> /etc/passwd
+
+		# Adds the new user to the /etc/group, linking them to their own group
+		echo "$username:x:$GID:$username" >> /etc/group 
+
+		# Creates the users home directory
+		mkdir /home/$username
+
+		# Copies the /etc/skel file to users home directory
+		cp -r /etc/skel /home/$username
+
+		# Changes the ownership of the home directory created to the user
+		chown -R "$username" "$home_dir"
+
+		
+	fi
+}
+
+# Function add the new user to one or more groups
+add_group() {
+
+	# Loops through the list of groups that the user provided
+	for group in "${group_add[@]}"; do
+	
+		# If the group provided does not exist
+		# -q will tell grep to not output
+		# '^'' will ensure that the group name is at the beginning of the line
+		if ! grep -q "^$group:" /etc/group; then
+			echo "Error: Group $group does not exist."
+
+			# Exit with a three status to indicate specific error
+			# In this case it means the group provided was not found
+			exit 3
+		fi
+
+		# Get the line from /etc/group for the group
+		group_line=$(grep "^$group:" /etc/group)
+
+		# Check if the group line ends with a (:) for formatting.
+		if [[ $group_line =~ :$ ]]; then
+
+			# If it ends with a colon, just append the username to the line
+			add_usergroup="${group_line}${username}"
+		else
+			# If it doesn't end with a colon, then append the username with a comma seperating it from other group members
+			add_usergroup="${group_line},${username}"
+		fi
+
+		# Update the group file with the new group membership
+		# https://www.hostafrica.ke/blog/web-tutorials/linux-basics-sed/
+		sed -i "s/$group_line/$add_usergroup/" /etc/group
+	done
+}
+
+# Using getopts
+while getopts ":u:s:g:" opt; do
+	case "${opt}" in
+	u)
+		# If the -u option is provided, assign the username
+		username=${OPTARG}
+
+		# If no uzername is provided, then print a message
+		if [[ -z "$username" ]]; then
+			echo "Error: ${opt} requires a custom username." 
+
+			# Exit with a two status to indicate failure
+			exit 2
+		fi
+		;;
+	s)
+		# If the -s option is provided, check if the shell is a valid option in /etc/shells
+		# -F tells grep that it's a fixed string
+		# -x tells grep to match the entire line provided
+		# -q tells grep to not output anything to console
+		if grep -Fxq "$shell" /etc/shells; then
+			shell=${OPTARG}
+		else
+			echo "Error: $shell is not a valid option"
+			exit 2
+		fi
+		;;
+	g)
+		# If the -g option is provided, handle the groups
+		# If no group is provided, then print a message
+		if [[ -z "${OPTARG}" ]]; then
+			echo "Error: -${opt} requires at least one group."
+
+			# Exit with a two status to indicate failure 
+			exit 2
+		fi
+
+		# Use IFS (Internal Field Separator) to read the comma-separated list of groups into an array
+		# https://unix.stackexchange.com/questions/184863/what-is-the-meaning-of-ifs-n-in-bash-scripting
+		IFS="," read -r -a group_add <<< "${OPTARG}"
+
+		# If no groups were inputted, print a message
+		if [[ ${#group_add[@]} -eq 0 ]]; then
+			echo "Error: -${opt} requires at least one group."
+
+			# Exit with a two status to indicate failure 
+			exit 2
+		fi
+		;;
+
+	:)
+		# If an option is missing an argument, print a message
+		echo "Error: Option -${OPTARG} requires an argument."
+
+		# Exit with a two status to indicate failure 
+		exit 2
+		;;
+	*) 
+		# If an invalid option is provided, tells the user to enter the correct syntax.
+		echo "Please use the correct command: sudo ./new_user -u username -s shell -g group"
+
+		# Exit with a one status to indicate failure
+		exit 1
+	esac
+done
+
+# If the username is still empty, print a message
+if [[ -z "$username" ]]; then
+	echo "Error: Username is required."
+	# Exit with a one status to indicate failure
+	exit 1
+fi
+
+check_uid
+
+add_user
+echo "Adding User: $username"
+add_group
+echo "Adding User: $username to specified groups"
+
+# Sets the password for the new user
+passwd $username
+if [[ $? -eq 0 ]]; then
+
+	# If the password is set successfully, confirm the user creation.
+	echo "User has been created."
+
+	# Exit with a zero status to indicate success
+	exit 0
+else
+	# If the password was not set, let the user know and suggest adding the password manually
+	echo "User was created, but password has not been set."
+	echo "Please set the password with "passwd $username
+
+	# Exit with a three status to indicate an error
+	exit 3
+fi
+
+
+
+
+
